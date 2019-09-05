@@ -140,6 +140,13 @@ class Map extends Component {
         }
         return false;
       });
+    } else {
+      movies.forEach((movie) => {
+        bounds.extend(movie.position);
+        googleMap.fitBounds(bounds);
+        movie.marker.setMap(googleMap);
+        return false;
+      });
     }
   }
 
