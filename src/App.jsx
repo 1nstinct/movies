@@ -1,12 +1,12 @@
 import React from 'react';
 import './App.css';
-import Map from './pages/Map';
+import MainPage from './pages/index';
 
 function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <Map />
+        <MainPage />
       </header>
     </div>
   );
