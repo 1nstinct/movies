@@ -1,7 +1,9 @@
 import React, { Component, createRef } from 'react';
+
 import http from '../../services/http';
 import createMarker from "./components/Marker";
 import createGoogleMap from "./components/GoogleMap";
+import { GOOGLE_KEY } from "../../main/config";
 
 class Map extends Component {
   constructor() {
@@ -10,7 +12,6 @@ class Map extends Component {
     this.state = {
       googleMapRef: createRef(),
       googleMap: null,
-      geocoder: null,
       bounds: null,
       movies: [],
     };
@@ -18,67 +19,47 @@ class Map extends Component {
 
   componentDidMount() {
     const googleScript = document.createElement('script');
-    googleScript.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyAPW4UhhJ8ciXSMOIrhy6SgnyO5nY_kyMk';
+    googleScript.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}`;
     window.document.body.appendChild(googleScript);
 
     googleScript.addEventListener('load', () => {
       const { googleMapRef } = this.state;
       this.setState({
         googleMap: createGoogleMap(googleMapRef),
-        geocoder: new window.google.maps.Geocoder(),
         bounds: new window.google.maps.LatLngBounds(),
       });
     });
 
     http().then((data) => {
-      let i = 1;
-      setTimeout(() => {
-        // TODO: Geocode was not successful for the following reason: OVER_QUERY_LIMIT
-        data.slice(i - 1, i * 5).map((movie) => { // eslint-disable-line
-          // geocoding
-          return this.getLocation(movie.locations, (results, status) => {
-            if (status === 'OK') {
-              const position = results[0].geometry.location;
-              const { movies, bounds, googleMap } = this.state;
+      console.log(data);
+      data.map((movie) => {
+        if (!movie.lat || !movie.lng) return;
+        const position = {
+          lat: parseFloat(movie.lat),
+          lng: parseFloat(movie.lng),
+        };
+        const { movies, bounds, googleMap } = this.state;
 
-              this.setState({
-                movies,
-                bounds: bounds.extend(position), // extend the bound by marker location
-              }, () => {
-                googleMap.fitBounds(bounds); // fit the bound to the map
-              });
-              let newMovie = {
-                ...movie,
-                position,
-              };
-              // creating the marker
-              const marker = createMarker(newMovie, googleMap);
-              newMovie = {
-                ...newMovie,
-                marker,
-              };
-              // saving the marker
-              movies.push(newMovie);
-              return false;
-            }
-            console.log(`Geocode was not successful for the following reason: ${status}`); // eslint-disable-line
-            return false;
-          });
+        this.setState({
+          movies,
+          bounds: bounds.extend(position), // extend the bound by marker location
+        }, () => {
+          googleMap.fitBounds(bounds); // fit the bound to the map
         });
-        i += 1;
-      }, 2000);
+        let newMovie = {
+          ...movie,
+          position,
+        };
+        // creating the marker
+        const marker = createMarker(newMovie, googleMap);
+        newMovie = {
+          ...newMovie,
+          marker,
+        };
+        // saving the marker
+        movies.push(newMovie);
+      });
     })
-  }
-
-
-  /**
-   * Decode location by address
-   * @param address
-   * @param cb
-   */
-  getLocation(address, cb) {
-    const { geocoder } = this.state;
-    geocoder.geocode({ address: `San Francisco, ${address}` }, cb);
   }
 
   filter(e) {

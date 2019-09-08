@@ -5,6 +5,9 @@
 import {API_URL} from "../main/config";
 
 const get = () => fetch(API_URL)
-    .then((res) => res.json())
+    .then((res) => {
+      console.log(res);
+      return res.json();
+    })
     .catch(console.log); // eslint-disable-line
 export default get;
