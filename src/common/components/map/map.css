@@ -1,0 +1,13 @@
+.btn {
+    height: 35px;
+    margin-left: 10px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+.errorStr {
+    color: #ff0000;
+}
+.invalidClass {
+    border: 1px solid #ff0000;
+}

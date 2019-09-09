@@ -66,3 +66,8 @@ This section has moved here: https://facebook.github.io/create-react-app/docs/de
 ### `npm run build` fails to minify
 
 This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+
+## Available Application Features
+* Displaying locations of all movies filmed in San Francisco
+* Showing a title, a release year and writers while clicking on markers
+* Searching by movie title, release year or writer

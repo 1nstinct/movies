@@ -3,7 +3,9 @@ import React, { Component, createRef } from 'react';
 import http from '../../services/http';
 import createMarker from "./components/Marker";
 import createGoogleMap from "./components/GoogleMap";
-import { GOOGLE_KEY } from "../../main/config";
+import { GOOGLE_KEY, MIN_SEARCH_STR_LENGTH } from "../../main/config";
+
+import "./map.css";
 
 class Map extends Component {
   constructor() {
@@ -14,6 +16,9 @@ class Map extends Component {
       googleMap: null,
       bounds: null,
       movies: [],
+      inputVal: '',
+      invalidInput: false,
+      disableFiltering: false,
     };
   }
 
@@ -29,11 +34,11 @@ class Map extends Component {
         bounds: new window.google.maps.LatLngBounds(),
       });
     });
-
+    // making API request for data
     http().then((data) => {
-      console.log(data);
       data.map((movie) => {
-        if (!movie.lat || !movie.lng) return;
+        if (!movie.lat || !movie.lng) return; // do not process if movie does not have lat, lng
+
         const position = {
           lat: parseFloat(movie.lat),
           lng: parseFloat(movie.lng),
@@ -59,25 +64,39 @@ class Map extends Component {
         // saving the marker
         movies.push(newMovie);
       });
-    })
+    });
   }
 
-  filter(e) {
-    const { bounds, movies, googleMap } = this.state;
-    const searchName = e.target.value.replace(/\s/g, '');
-
-    // clear all markers
-    movies.forEach((movie) => {
-      movie.marker.setMap(null);
-    });
+  /**
+   * Filer the list of movies and their markers
+   */
+  filter() {
+    const { movies, googleMap, inputVal, disableFiltering } = this.state;
+    if (disableFiltering) return;
+    const searchName = inputVal
+      .trim()
+      .toLowerCase();
+    // init new markets view
+    const bounds = new window.google.maps.LatLngBounds();
+    // input validation
+    if (searchName.length > 0 && searchName.length < MIN_SEARCH_STR_LENGTH) {
+      this.setState({ invalidInput: true });
+    } else {
+      this.setState({ invalidInput: false });
+    }
 
     // filtering movies
-    if (searchName && searchName.length > 3) {
+    if (searchName && searchName.length >= MIN_SEARCH_STR_LENGTH) {
+      this.setState({ disableFiltering: true });
+      // clear all markers
       movies.forEach((movie) => {
-        if (movie.title.includes(searchName)
-          || movie.writer.includes(searchName)
-          || movie.release_year.includes(searchName)
-        ) {
+        movie.marker.setMap(null);
+      });
+      // search for matches
+      movies.forEach((movie) => {
+        if (movie.Title.toLowerCase().includes(searchName)
+        || movie.Writer.toLowerCase().includes(searchName)
+        || movie['Release Year'] === searchName) {
           bounds.extend(movie.position);
           googleMap.fitBounds(bounds);
           movie.marker.setMap(googleMap);
@@ -85,6 +104,8 @@ class Map extends Component {
         return false;
       });
     } else {
+      this.setState({ disableFiltering: true });
+      // return back all movies and their markers
       movies.forEach((movie) => {
         bounds.extend(movie.position);
         googleMap.fitBounds(bounds);
@@ -92,13 +113,42 @@ class Map extends Component {
         return false;
       });
     }
+    // fit map to the bound
+    this.setState({ bounds });
+    this.setState({ disableFiltering: false });
+  }
+
+  /**
+   * Keyboard actions handler
+   * @param e
+   */
+  onKeyPress(e) {
+    if (e.keyCode === 13) {
+      // enter
+      this.filter();
+    }
   }
 
   render() {
-    const { googleMapRef } = this.state;
+    const { googleMapRef, invalidInput, disableFiltering } = this.state;
     return (
       <div style={{ width: '100%', height: '600px' }}>
-        <input style={{ height: '30px', marginTop: '30px', width: '200px' }} type="text" className="form-control" id="mname" placeholder="Search by title or writer or year..." onChange={(e) => this.filter(e)} />
+        <input
+          style={{ height: '30px', marginTop: '30px', width: '200px' }}
+          type="text"
+          className={`${invalidInput ? 'invalidClass' : ''}`}
+          id="mname"
+          placeholder={`${invalidInput ? MIN_SEARCH_STR_LENGTH + ' characters is min' : 'Search by title or writer or year...'}`}
+          onKeyPress={(e) => this.onKeyPress(e)}
+          onChange={(e) => this.setState({ inputVal: e.target.value })}
+        />
+        <button
+          className="btn"
+          onClick={() => this.filter()}
+          disabled={disableFiltering}
+        >
+          Filter
+        </button>
         <p />
         <div
           id="google-map"
