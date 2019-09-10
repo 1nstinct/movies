@@ -1,11 +1,11 @@
 import React, { Component, createRef } from 'react';
 
 import http from '../../services/http';
-import createMarker from "./components/Marker";
-import createGoogleMap from "./components/GoogleMap";
-import { GOOGLE_KEY, MIN_SEARCH_STR_LENGTH } from "../../main/config";
+import createMarker from './components/Marker';
+import createGoogleMap from './components/GoogleMap';
+import { GOOGLE_KEY, MIN_SEARCH_STR_LENGTH } from '../../main/config';
 
-import "./map.css";
+import './map.css';
 
 class Map extends Component {
   constructor() {
@@ -35,43 +35,54 @@ class Map extends Component {
       });
     });
     // making API request for data
-    http().then((data) => {
-      data.map((movie) => {
-        if (!movie.lat || !movie.lng) return; // do not process if movie does not have lat, lng
+    http().then((data) => data.map((movie) => {
+      if (!movie.lat || !movie.lng) return false; // do not process if movie does not have lat, lng
 
-        const position = {
-          lat: parseFloat(movie.lat),
-          lng: parseFloat(movie.lng),
-        };
-        const { movies, bounds, googleMap } = this.state;
+      const position = {
+        lat: parseFloat(movie.lat),
+        lng: parseFloat(movie.lng),
+      };
+      const { movies, bounds, googleMap } = this.state;
 
-        this.setState({
-          movies,
-          bounds: bounds.extend(position), // extend the bound by marker location
-        }, () => {
-          googleMap.fitBounds(bounds); // fit the bound to the map
-        });
-        let newMovie = {
-          ...movie,
-          position,
-        };
-        // creating the marker
-        const marker = createMarker(newMovie, googleMap);
-        newMovie = {
-          ...newMovie,
-          marker,
-        };
-        // saving the marker
-        movies.push(newMovie);
+      this.setState({
+        movies,
+        bounds: bounds.extend(position), // extend the bound by marker location
+      }, () => {
+        googleMap.fitBounds(bounds); // fit the bound to the map
       });
-    });
+      let newMovie = {
+        ...movie,
+        position,
+      };
+      // creating the marker
+      const marker = createMarker(newMovie, googleMap);
+      newMovie = {
+        ...newMovie,
+        marker,
+      };
+      // saving the marker
+      return movies.push(newMovie);
+    }));
+  }
+
+  /**
+   * Keyboard actions handler
+   * @param e
+   */
+  onKeyPress(e) {
+    if (e.keyCode === 13) {
+      // enter
+      this.filter();
+    }
   }
 
   /**
    * Filer the list of movies and their markers
    */
   filter() {
-    const { movies, googleMap, inputVal, disableFiltering } = this.state;
+    const {
+      movies, googleMap, inputVal, disableFiltering,
+    } = this.state;
     if (disableFiltering) return;
     const searchName = inputVal
       .trim()
@@ -118,17 +129,6 @@ class Map extends Component {
     this.setState({ disableFiltering: false });
   }
 
-  /**
-   * Keyboard actions handler
-   * @param e
-   */
-  onKeyPress(e) {
-    if (e.keyCode === 13) {
-      // enter
-      this.filter();
-    }
-  }
-
   render() {
     const { googleMapRef, invalidInput, disableFiltering } = this.state;
     return (
@@ -138,10 +138,11 @@ class Map extends Component {
           type="text"
           className={`${invalidInput ? 'invalidClass' : ''}`}
           id="mname"
-          placeholder={`${invalidInput ? MIN_SEARCH_STR_LENGTH + ' characters is min' : 'Search by title or writer or year...'}`}
+          placeholder={`${invalidInput ? `${MIN_SEARCH_STR_LENGTH} characters is min` : 'Search by title or writer or year...'}`}
           onKeyPress={(e) => this.onKeyPress(e)}
           onChange={(e) => this.setState({ inputVal: e.target.value })}
         />
+        {/* eslint-disable-next-line react/button-has-type */}
         <button
           className="btn"
           onClick={() => this.filter()}
